@@ -1,0 +1,100 @@
+#### Kelsey Wenzel
+#### IST 687
+#### Homework 4
+#### Samples HW
+##################################
+## call the moments library
+library(moments)
+
+## Step 1: Write a summarizing function to understand the distribution of a vector
+# 1 & 2 
+printVecInfo <- function (inputVector) 
+{
+  #get distribution info
+  meanVec <- mean(inputVector)
+  medVec <- median(inputVector)
+  quantVec <- quantile(inputVector, c(.05,.95))
+  maxVec <- max(inputVector)
+  minVec <- min(inputVector)
+  stdevVec <- sd(inputVector)
+  skewVec <- skewness(inputVector)
+  
+  newVec <- cat ("mean:", meanVec, "\n", "median:", medVec, "\n",
+                 "min:",minVec,"max:", maxVec,"\n", "sd:", stdevVec,"\n",
+                 "quantile (0.05-0.95):", quantVec[1], "--", quantVec[2], "\n",
+                 "skewness:", skewVec, "\n")
+
+
+  return (newVec)
+}
+
+
+## 3. Test the function with testVector
+# create testVector
+testVector <- c(1,2,3,4,5,6,7,8,9,10,50)
+# Use printVecInfo function on testVector for testing
+printVecInfo(testVector)
+
+## Step 2: Creating Samples in a jar
+## 4. create a variable "jar" with 50 red and 50 blue
+jar <- rep("red", 50)
+jar <- c(jar, rep("blue",50))
+## 5. summing the samples that are red
+sumRed <- length(grep("red",jar))
+sumRed
+## 6. Sample 10 marbles 
+sample10 <- sample(jar, size=10, replace=TRUE)
+countRed <- length(grep("red",sample10))
+# How many are red?
+countRed
+# What was the precentage of red marbles?
+sample10Percentage <- countRed/(length(sample10))
+sample10Percentage
+# 7. Create a funtion to find mean "red"
+meanFunction <- function (inputVector)
+{
+  countRed <- length(grep("red",inputVector))
+  
+  return(countRed)
+}
+# replicate the function 20x with a different sample of 10 each time
+samples20x10 <- replicate(20,meanFunction(sample(jar,size = 10,replace=TRUE)))
+samples20x10
+# generate a histogram
+hist(samples20x10)
+# see distribution using printVecInfo function
+printVecInfo(samples20x10)
+## 8. Repeat#7, sample size of 100 replicated 20 times
+samples20x100 <- replicate(20,meanFunction(sample(jar,size = 100,replace=TRUE)))
+samples20x100
+length(samples20x100)
+## 9. Repeat #8, sample size of 100 replicated 100 times
+samples100x100 <- replicate(100,meanFunction(sample(jar,size = 100,replace=TRUE)))
+samples100x100
+# use printVecInfo to see distribution
+printVecInfo(samples100x100)
+# generate histogram
+hist(samples100x100)
+
+## Step 3: Explore the airquality dataset
+# 10. storing airquality as airQualitydf
+airQualitydf <- airquality
+# 11. remove rows contain NA
+airQualitydf <- na.omit(airQualitydf)
+# 12. Explore Ozone, Wind and Temp with printVecInfo function
+# distribution info for Ozone
+printVecInfo(airQualitydf$Ozone)
+# generate histogram for Ozone
+hist(airQualitydf$Ozone)
+# distribution info for Wind
+printVecInfo(airQualitydf$Wind)
+# generate histogram for Wind
+hist(airQualitydf$Wind)
+# distribution info for Temp
+printVecInfo(airQualitydf$Temp)
+# generate histogram for Temp
+hist(airQualitydf$Temp)
+
+
+
+

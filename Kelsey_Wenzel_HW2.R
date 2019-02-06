@@ -1,0 +1,28 @@
+# Kelsey Wenzel
+# IST 687
+# HW 2
+# due: 1/23/19
+# submitted: 1/23/19
+#
+# 
+myCars <- mtcars
+# Step 1:
+max(myCars$hp)
+myCars[which.max(myCars$hp),]
+# Step 2:
+max(myCars$mpg)
+myCars[which.max(myCars$mpg),]
+MPGmyCars <- myCars [- order(myCars$mpg),]
+MPGmyCars
+#Step 3:
+# 6) I used the sum logic. The car with the highest sum 
+# of MPG and HP would be the best car.
+dfsum <- myCars$hp + myCars$mpg
+bestCar <- cbind(myCars, dfsum)
+bestCar[which.max(bestCar$dfsum),]
+#Step 4:
+normalMyCarsHp <- scale(myCars$hp,center = TRUE)
+normalMyCarsMpg <- scale(myCars$mpg,center = TRUE)
+normalCarsSum <- normalMyCarsHp + normalMyCarsMpg
+normalBestCar <- cbind(myCars, normalCarsSum)
+normalBestCar[which.max(normalBestCar$normalCarsSum),]
