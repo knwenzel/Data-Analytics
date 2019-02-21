@@ -1,7 +1,4 @@
-#### Kelsey Wenzel
-#### IST 687
-#### Homework 6
-#### Description: Viz HW: Air Quality Analysis
+
 
 #install.packages("ggplot2")
 library(ggplot2)
