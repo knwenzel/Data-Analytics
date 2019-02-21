@@ -1,0 +1,70 @@
+#### Kelsey Wenzel
+#### IST 687
+#### Homework 5
+#### Description: JSON & tapply Homework: Accident Analysis
+
+## install packages
+#install.packages("RCurl")
+library(RCurl)
+#install.packages("RJSONIO")
+library(RJSONIO)
+#install.packages("sqldf")
+library(sqldf)
+library(dplyr)
+
+## Step 1: Load the Data
+marylandURL <- "http://data.maryland.gov/api/views/pdvh-tf2u/rows.json?accessType=DOWNLOAD"
+apiResult <- getURL(marylandURL)
+results <- fromJSON(apiResult, nullValue = NA) #simplify=FALSE???
+datajson <- results[[2]]
+
+## Step 2: Clean the data
+# find the number of row
+numRows <- length(datajson)
+
+# find the number of columns
+numCol <- length(datajson[[1]])
+
+# take json data and creating a dataframe 
+dfdata <- data.frame(matrix(data=unlist(datajson),nrow=numRows, ncol=numCol, byrow=TRUE), stringsAsFactors=FALSE)
+
+# removing first 8 columns
+dfdataclean <- subset(dfdata, select = -c(1,2,3,4,5,6,7,8))
+
+# changing column names
+namesOfColumns <- c("CASE_NUMBER","BARRACK","ACC_DATE","ACC_TIME","ACC_TIME_CODE","DAY_OF_WEEK","ROAD","INTERSECT_ROAD",
+                    "DIST_FROM_INTERSECT","DIST_DIRECTION","CITY_NAME","COUNTY_CODE","COUNTY_NAME","VEHICLE_COUNT",
+                    "PROP_DEST","INJURY","COLLISION_WITH_1","COLLISION_WITH_2")
+names(dfdataclean) = namesOfColumns
+
+## Step 3: Understanding the data usingSQL(viaSQLDF)
+# How many accidents happen on SUNDAY?
+sqldf("SELECT COUNT(*) FROM dfdataclean WHERE DAY_OF_WEEK like '%SUNDAY%'")
+
+# How many accidents had injuries?
+sqldf("SELECT COUNT(*) FROM dfdataclean WHERE INJURY like '%YES%'")
+
+# List the injuries by day
+sqldf("SELECT COUNT(*) FROM dfdataclean WHERE INJURY like '%YES%' group by DAY_OF_WEEK")
+
+
+## Step 4: Understanding the data using tapply
+# How many accidents happen on Sunday?
+countsperday<- c(tapply(dfdataclean$DAY_OF_WEEK=='SUNDAY', dfdataclean$DAY_OF_WEEK, length))
+countsperday[4]
+
+
+# How many accidents had injuries?
+numinjuries <- c(tapply(dfdataclean$INJURY=='YES',dfdataclean$INJURY,length))
+numinjuries[2]
+
+# List the injuries by day
+byday <- tapply(dfdataclean$INJURY,dfdataclean$DAY_OF_WEEK,length)
+byday
+
+            
+            
+          
+
+            
+                
