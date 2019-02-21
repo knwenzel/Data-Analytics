@@ -1,7 +1,4 @@
-#### Kelsey Wenzel
-#### IST 687
-#### Homework 3
-#### Description: Cleaning/munging	Dataframes
+
 
 ##### Step 1:Create a function (named readStates) to read a CSV file into R
 readStates <- function (urlToRead) {
