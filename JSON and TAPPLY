@@ -1,7 +1,3 @@
-#### Kelsey Wenzel
-#### IST 687
-#### Homework 5
-#### Description: JSON & tapply Homework: Accident Analysis
 
 ## install packages
 #install.packages("RCurl")
