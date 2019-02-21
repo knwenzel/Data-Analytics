@@ -1,8 +1,4 @@
-#### Kelsey Wenzel
-#### IST 687
-#### Homework 4
-#### Samples HW
-##################################
+
 ## call the moments library
 library(moments)
 
