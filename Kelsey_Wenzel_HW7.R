@@ -1,0 +1,86 @@
+#### Kelsey Wenzel
+#### IST 687
+#### Homework 7
+#### Description: Viz Map: Median Income
+
+#install.packages("maps")
+library(maps)
+#install.packages("gdata")
+library(gdata)
+library(ggmap)
+library(ggplot2)
+#install.packages("zipcode")
+library(zipcode)
+#install.packages("sqldf")
+library(sqldf)
+library(dplyr)
+#install.packages("states")
+library(states)
+#install.packages("usmap")
+library(usmap)
+
+## Step 1: Load the Data
+
+# Read the data 
+zipcodedata <- read.csv("MedianZIP-3.csv")
+
+# Clean the data - change column names
+colnames(zipcodedata) <- c("zip", "median", "mean", "population")
+ 
+# remove commas
+zipcodedata$median <- as.numeric(gsub(",","",zipcodedata$median))
+zipcodedata$mean <- as.numeric(gsub(",","",zipcodedata$mean))
+zipcodedata$population <- as.numeric(gsub(",","",zipcodedata$population))
+
+# add leading zeros to zip
+zipcodedata$zip <- sapply(zipcodedata$zip, function(x){if(nchar(x)<5){paste0(0,x)}else{x}})
+
+# load zipcode package
+data(zipcode)
+zipbystate <- zipcode
+
+# merge zipcode and state table with zipcodedate
+dfnew <- merge(zipcodedata,zipbystate, by="zip")
+
+# delete Alaska and Hawaii rows
+dfnew <- subset(dfnew, !dfnew$state =="AK" & !dfnew$state =="HI")
+
+## Step 2: Show the income and population per state
+bystate <- sqldf("SELECT state, AVG(median) AS average_median_income, AVG(population) AS average_population FROM dfnew GROUP BY state")
+
+# add full statename
+bystate$state_name <-state.name[match(bystate$state,state.abb)]
+
+# make state_names all lowercase
+bystate$state_name <- tolower(bystate$state_name)
+
+# Show the U.S. map, representing the color 
+# with the average median income of that state
+us <- map_data ("state")
+incomemap <- ggplot(bystate, aes(map_id = state_name)) + geom_map(map = us, aes(fill=bystate$average_median_income))
+incomemap <- incomemap + expand_limits(x=us$long, y=us$lat)
+incomemap <- incomemap + coord_map() + ggtitle ("Average median income by State")
+incomemap
+
+# Show the second map with color representing the population of the state
+popmap <- ggplot(bystate, aes(map_id = state_name)) + geom_map(map = us, aes(fill=bystate$average_population))
+popmap <- popmap + expand_limits(x=us$long, y=us$lat)
+popmap <- popmap + coord_map() + ggtitle ("Population by State")
+popmap
+
+
+## Step 3: Show the income per zip code
+# add full statename to zipcode df
+dfnew$state_name <-state.name[match(dfnew$state,state.abb)]
+# make state_names all lowercase
+dfnew$state_name <- tolower(dfnew$state_name)
+# create US map with income per zipcode
+incomezip <- ggplot(dfnew, aes(map_id = state_name)) + geom_map(map = us, color = "#ffffff")
+incomezip <- incomezip + expand_limits(x=us$long, y=us$lat)
+incomezip <- incomezip + coord_map() + ggtitle ("Income per zipcode")
+incomezip <- incomezip + geom_point(data=dfnew, aes(x=dfnew$longitude, y=dfnew$latitude, color= dfnew$median),shape=1)
+incomezip
+
+## Step 4: Show Zipcode Density
+# Create US map with Zipcode Density
+incomezip + stat_density2d(data=dfnew, aes(x = dfnew$longitude, y = dfnew$latitude)) + ggtitle("zipcode density")
