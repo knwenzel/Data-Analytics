@@ -1,7 +1,4 @@
-#### Kelsey Wenzel
-#### IST 687
-#### Homework 7
-#### Description: Viz Map: Median Income
+### Description: Viz Map: Median Income
 
 #install.packages("maps")
 library(maps)
