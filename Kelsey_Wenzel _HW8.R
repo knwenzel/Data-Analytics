@@ -1,0 +1,52 @@
+#### Kelsey Wenzel
+#### IST 687
+#### Homework 8
+#### Description: Making Predictions
+
+library(readxl)
+#X1 = spring fawn count/100
+#X2 = size of adult antelope population/100
+#X3 = annual precipitation (inches)
+#X4 = winter severity index (1=mild,5=severe)
+
+# reading in excel file "antelope df"
+antelopedf <- read_excel("antelopedf.xlsx")
+View(antelopedf)
+
+# view df and make sure there are 8obs of 4 variables
+str(antelopedf)
+
+# plot number of baby fawns versus adult antelope population
+plot1 <-plot(antelopedf$X2,antelopedf$X1, main="Baby Fawns versus Adult Antelope Population", xlab="Adult Antelope population/100", ylab="Spring Fawn Count/100")
+# plot the precipitation that year versus baby fawns
+plot(antelopedf$X3,antelopedf$X1, main="Baby Fawns versus Annual Precipitation", xlab="Annual Precipitation (inches)", ylab="Spring Fawn Count/100")
+# plot the winter severity index versus baby fawns
+plot(antelopedf$X4,antelopedf$X1, main="Baby Fawns versus Winter Severity", xlab="Winter Severity Index(1=mild, 5=severe)", ylab="Spring Fawn Count/100")
+
+# Create a linear regression model to predict the number of fawns from winter severity
+m1 <- lm(formula=antelopedf$X1~antelopedf$X4, data=antelopedf)
+summary(m1)
+# With a Rsquared value of .54, we are led to believe that winter severity accounts for 54% of the varaibility of the number of fawns
+# with a p-value less than .05, we can say the this test is statistcally significant, and the results are probably not due to randomness
+
+# predict the number of fawns from winter severity and adult population
+m2<- lm(formula=antelopedf$X1~antelopedf$X4+ antelopedf$X2, data=antelopedf)
+summary(m2)
+plot(m2)
+# The adjusted Rsquared is .84, meaning 84% of the variability of baby fawns is due to winter severity and the adult population
+# In this model, winter severity has a p-value greater than .05, so we would not say this is statistically significant, however
+# the adult population is significant and is not due to randomness. 
+
+# predict number of fawns from all three variables
+m3<- lm(formula=antelopedf$X1~antelopedf$X4+ antelopedf$X2 + antelopedf$X3, data=antelopedf)
+summary(m3)
+# This model has the greatest adjusted rsquared value of the 3 at .95
+# Each of the variables has a p-value below .05 meaning they are all statistically significant
+
+## In conclusion, Model "M3" had the best results. With an adjusted Rsquared value of 95%, we can say that using the variables 
+# winter severity, adult population, and annual precipitation, 95% of fawns variability is due to these factors. Each factor having
+# a low p-value also shows us that each variable is statisically significant in the model.
+
+
+
+
