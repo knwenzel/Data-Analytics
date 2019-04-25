@@ -1,0 +1,151 @@
+## 
+library(ggplot2)
+library(gridExtra)
+
+setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707")
+storyteller<- read.csv ("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/data-storyteller.csv")
+head(storyteller)
+str(storyteller)
+
+## changing variable types. 
+# School and Section are nominal
+storyteller$School <- factor(storyteller$School)
+storyteller$Section <- factor(storyteller$Section)
+
+#all other columns are numeric ratio attribute because they contains an arbitrary zero and
+#can give proportional results when multiplied or divided. "
+storyteller$Very.Ahead..5 <- as.numeric(storyteller$Very.Ahead..5)
+storyteller$Middling..0 <- as.numeric(storyteller$Middling..0)
+storyteller$Behind..1.5 <- as.numeric(storyteller$Behind..1.5)
+storyteller$More.Behind..6.10 <- as.numeric(storyteller$More.Behind..6.10)
+storyteller$Very.Behind..11 <- as.numeric(storyteller$Very.Behind..11)
+storyteller$Completed <- as.numeric(storyteller$Completed)
+
+# Find the number of rows that are not complete
+nrow(storyteller[!complete.cases(storyteller),])
+# number of complete rows
+nrow(storyteller[complete.cases(storyteller),])
+# show the df with all complete rows
+storyteller[complete.cases(storyteller),]
+
+# check for duplicate data
+nrow(storyteller[duplicated(storyteller),])
+
+# another way to check for na's in each row
+sapply(storyteller, function(y) sum(length(which(is.na(y)))))
+
+# drop very ahead column (there is no student in this column)
+storyteller <- subset(storyteller, select = -c(Very.Ahead..5))
+
+# summary
+summary(storyteller)
+
+## Descriptive Statistics
+# getting IQR for each column with getiqr function
+getiqr <- function(column) {
+  qt <- quantile(column, na.rm=TRUE)
+  iqr <- qt[['75%']]-qt[['25%']]
+  qtiqr <- list("Quantiles"= qt, "IQR" = iqr)
+  return(qtiqr)
+}
+
+getiqr(storyteller$Middling..0)
+getiqr(storyteller$Behind..1.5)
+getiqr(storyteller$More.Behind..6.10)
+getiqr(storyteller$Very.Behind..11)
+getiqr(storyteller$Completed)
+
+
+
+#mode for nominal variables
+table(storyteller$School)
+table(storyteller$School)[which.max(table(storyteller$School))]
+
+table(storyteller$Section)
+table(storyteller$Section)[which.max(table(storyteller$Section))]
+
+summary(storyteller)
+
+
+
+
+## Visuals
+# simple boxplot per column
+boxplot(storyteller$Middling..0)
+boxplot(storyteller$Behind..1.5)
+boxplot(storyteller$More.Behind..6.10)
+boxplot(storyteller$Very.Behind..11)
+boxplot(storyteller$Completed)
+
+# table showing sections per school
+table(storyteller$School,storyteller$Section)
+
+# boxplots by school and column
+sumperschool <- aggregate(cbind(Middling..0, Behind..1.5,More.Behind..6.10,Very.Behind..11,Completed) ~ School, data = storyteller, sum)
+
+# add column total by school
+sumperschool$schooltotal <-rowSums(sumperschool[,c("Middling..0", "Behind..1.5","More.Behind..6.10","Very.Behind..11","Completed")])
+
+# Normalize values by calculating percentage
+sumperschool[2:6]<-apply(sumperschool[2:6], 2, function(x) as.numeric(x)/sumperschool$schooltotal)
+head(sumperschool)
+
+createboxplot <- function(df, columnname, fill) {
+  p <- ggplot(df, aes_string(x=fill, y=columnname, fill=fill)) + 
+    ylim(0,1) + 
+    geom_bar(stat = "identity") + 
+    ylab(paste(columnname, "%")) +
+    theme(legend.position = "none") 
+  return(p)
+}
+
+
+grid.arrange(
+  createboxplot(sumperschool, "Middling..0", "School"),
+  createboxplot(sumperschool, "Behind..1.5","School"),
+  createboxplot(sumperschool, "More.Behind..6.10", "School"),
+  createboxplot(sumperschool, "Very.Behind..11", "School"),
+  createboxplot(sumperschool, "Completed", "School"),
+  ncol=5
+)
+
+
+## More Visuals
+# boxplots by section
+sumpersection <- aggregate(cbind(Middling..0, Behind..1.5,More.Behind..6.10,Very.Behind..11,Completed) ~ Section, data = storyteller, sum)
+sumpersection
+# add column total by section
+sumpersection$sectiontotal <-rowSums(sumpersection[,c("Middling..0", "Behind..1.5","More.Behind..6.10","Very.Behind..11","Completed")])
+
+# Normalize values by calculating percentage
+sumpersection[2:6]<-apply(sumpersection[2:6], 2, function(x) as.numeric(x)/sumpersection$sectiontotal)
+head(sumpersection)
+
+createboxplot <- function(df, columnname, fill) {
+  p <- ggplot(df, aes_string(x=fill, y=columnname, fill=fill)) + 
+    ylim(0,1) + 
+    geom_bar(stat = "identity") + 
+    ylab(paste(columnname, "%")) +
+    theme(legend.position = "none") 
+  return(p)
+}
+
+# arranging the boxplots in one chart
+grid.arrange(
+  createboxplot(sumpersection, "Middling..0", "Section"),
+  createboxplot(sumpersection, "Behind..1.5", "Section"),
+  createboxplot(sumpersection, "More.Behind..6.10", "Section"),
+  createboxplot(sumpersection, "Very.Behind..11", "Section"),
+  createboxplot(sumpersection, "Completed","Section"),
+  ncol=5
+)
+
+## More visuals, but this time with only categories
+
+# drop school and section columns
+storytellercounts <- subset(storyteller, select = -c(School, Section))
+head(storytellercounts)
+# create sum counts for each category
+categorycount <- colSums(storytellercounts)
+# create a pie chart with this category counts
+pie(categorycount)
