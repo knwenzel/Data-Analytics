@@ -9,8 +9,8 @@ library(arules)
 library(arulesViz)
 
 ## LOADING DATA
-setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707")
-bankdata<- read.csv ("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/bankdata_csv_all.csv")
+setwd("C:/Users********")
+bankdata<- read.csv ("C:/User********bankdata_csv_all.csv")
 head(bankdata)
 
 ## view attribute types
