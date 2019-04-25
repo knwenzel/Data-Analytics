@@ -2,8 +2,8 @@
 library(ggplot2)
 library(gridExtra)
 
-setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707")
-storyteller<- read.csv ("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/data-storyteller.csv")
+setwd("C:/Users************")
+storyteller<- read.csv ("**********data-storyteller.csv")
 head(storyteller)
 str(storyteller)
 
