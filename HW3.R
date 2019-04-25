@@ -1,0 +1,161 @@
+##### HW 3
+
+library(RWeka)
+library(RWekajars)
+library(foreign)
+library(plyr)
+library(dplyr)
+library(arules)
+library(arulesViz)
+
+## LOADING DATA
+setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707")
+bankdata<- read.csv ("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/bankdata_csv_all.csv")
+head(bankdata)
+
+## view attribute types
+str(bankdata)
+
+## EXPLORING AND CLEANING DATA
+# Find the number of rows that are not complete
+nrow(bankdata[!complete.cases(bankdata),])
+# number of complete rows
+nrow(bankdata[complete.cases(bankdata),])
+# show the df with all complete rows
+#bankdata[complete.cases(bankdata),]
+
+# check for duplicate data
+nrow(bankdata[duplicated(bankdata),])
+
+# another way to check for na's in each row
+sapply(bankdata, function(y) sum(length(which(is.na(y)))))
+
+# summary
+summary(bankdata)
+
+## DISCRETIZATION 
+# make children Y/N, factor data type
+bankdata$children <- ifelse(bankdata$children=="0", "No","Yes" )
+bankdata$children <- factor(bankdata$children)
+
+
+# place the income into 6 bins or classes.
+bankdata$income <- cut(bankdata$income, breaks=c(0,10000,20000,30000,40000,50000,Inf),
+               labels=c("Very Low","Low", "Low Mid", "Mid" ,"High Mid", "High"))
+
+# explore new income column
+table(bankdata$income)
+counts <- table(bankdata$income)
+barplot(counts, main="Income Distribution", xlab="Income", ylab="Count")
+
+
+# place the age into 3 bins or classes.
+bankdata$age <- cut(bankdata$age, breaks=c(0,30,50,Inf),
+                       labels=c("Under 30","Middle Aged", "Over 50"))
+(bankdata$age)
+counts <- table(bankdata$age)
+barplot(counts, main="Age Distribution", xlab="Age", ylab="Count")
+
+# VIEW CHANGES
+str(bankdata)
+summary(bankdata)
+
+
+
+# view remaining attributes
+# sex
+sex <- bankdata$sex
+sex.freq <- table(sex)
+pie(sex.freq)
+sex.freq
+
+
+# Region
+counts <- table(bankdata$region)
+barplot(counts, main="Region Distribution", xlab="Region", ylab="Count")
+
+# Married
+married <- bankdata$married
+married.freq <- table(married)
+pie(married.freq)
+married.freq
+
+# Car
+car <- bankdata$car
+car.freq <- table(car)
+pie(car.freq)
+car.freq
+
+# sav_act
+save_act <- bankdata$save_act
+save_act.freq <- table(save_act)
+pie(save_act.freq)
+save_act.freq
+
+# current_act
+current_act <- bankdata$current_act
+current_act.freq <- table(current_act)
+pie(current_act.freq)
+current_act.freq
+
+# mortgage
+mortgage <- bankdata$mortgage
+mortgage.freq <- table(mortgage)
+pie(mortgage.freq)
+mortgage.freq
+
+# PEP
+pep <- bankdata$pep
+pep.freq <- table(pep)
+pie(pep.freq)
+pep.freq
+
+
+## Drop ID column
+bankdata <- subset(bankdata, select=-c(id))
+
+
+
+## convert to transaction data and create rules 
+rules <- apriori(bankdata, parameter = list(supp = 0.01, conf = 0.9, maxlen = 3))
+rules<-sort(rules, by=c("support","confidence","lift"), decreasing=TRUE)
+
+# view summary of all rules 
+summary(rules)
+# view top 5 rules 
+inspect(rules[1:5])
+
+# plot all rules 
+plot(rules,method="graph",interactive=TRUE,shading=NA)
+
+
+# get the top 10 rules sorted by lift, confidence and support
+
+liftrules <- head(sort(rules, by=c("support","confidence","lift"), decreasing=TRUE),20)
+# plotting rules sorted by lift
+plot(liftrules, method="graph")
+# plot these interactively
+plot(liftrules, method="graph", interactive=TRUE)
+summary(liftrules)
+inspect(rules[1:20])
+
+# summary - can see frequency of "items" 
+summary(bankdata)
+
+## TARGETING ITEMS
+# change right hand side to PEP
+# What are customers likely to be if they purchased a pep after their last mailing?
+peprules<- apriori(data=bankdata, parameter=list(supp = 0.02, conf = 0.9),
+                appearance = list(default="lhs",rhs="pep=YES"),
+                control= list(verbose=F))
+peprules<- sort(peprules,decreasing=TRUE, by=c("support","confidence","lift"))
+inspect(peprules[1:10])
+summary(peprules)
+
+toppeprules <- peprules[1:20]
+inspect(toppeprules)
+plot(toppeprules, method = "graph")
+plot(toppeprules, method = "graph", interactive = TRUE)
+
+inspect(peprules[1:30])
+
