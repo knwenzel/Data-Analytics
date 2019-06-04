@@ -15,7 +15,7 @@ library(e1071)
 library(rpart)
 
 ## Prepare data
-setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/")
+setwd("C:/Users/************************/")
 digittrain = read.csv("digit-train.csv",na.string=c(""))
 digittest = read.csv('digit-test.csv',na.string=c(""))
 str(digittrain)
