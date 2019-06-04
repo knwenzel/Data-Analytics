@@ -1,0 +1,288 @@
+
+# import libraries
+library(tm)
+library(data.table)
+library(DescTools)
+library(rpart)
+library(wordcloud)
+library(ggplot2)
+
+#install.packages("RColorBrewer")
+#install.packages("rattle")
+
+library(RColorBrewer)
+library(rattle)
+
+#lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE)
+
+
+# Preparing the corpus
+setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/")
+fedpapers <- Corpus(DirSource("FedPapersCorpus"), readerControl = list(reader = readPlain))
+(ndocs<-length(fedpapers))
+
+# Show available transfomrations 
+getTransformations()
+
+# Storing list of common English stop works
+stops <-stopwords('english')
+length(stops)
+head(stops)
+
+# Transformations
+fedpapers <- tm_map(fedpapers, removeNumbers)
+fedpapers <- tm_map(fedpapers, removePunctuation)
+fedpapers <- tm_map(fedpapers, content_transformer(tolower))
+fedpapers <- tm_map(fedpapers, removeWords, stops)
+fedpapers <- tm_map(fedpapers, stemDocument)
+morestops <- c("maggie", "philip", "tom", "glegg", "deane", "stephen","tulliver", "jame", "madison", "hamilton")
+fedpapers <- tm_map(fedpapers, removeWords, morestops)
+
+# take out words that occur in 70% of the documents
+maxwords <- ndocs * .7
+# take out rare words, less than 1%
+minwords <- ndocs * 0.0001
+
+# Creating the term matrix
+fedpapermatrix<- DocumentTermMatrix(fedpapers, control = list(bounds= list(global=c(minwords, maxwords))))
+
+matrixfp <- as.matrix(fedpapermatrix)
+matrixfp[1:13,1:10]
+
+
+
+#################
+## Hamilton
+################
+# Filter the matrix by author
+(hamiltonrows <- which(rownames(matrixfp) %like% "Hamilton%", arr.ind = TRUE))
+hamiltonmatrix <- matrixfp[hamiltonrows,]
+
+# Find the column sums of the hamilton matrix
+hamiltonwords <- as.data.frame(colSums(hamiltonmatrix))
+# name column to words
+hamiltonwords <- setDT(hamiltonwords, keep.rownames = "word")[]
+# rename column to freq
+names(hamiltonwords)[2] <- "freq"
+# remove words that do not occur in Hamilton papers
+hamiltonwords <- subset(hamiltonwords, hamiltonwords$freq>0)
+
+
+# viewing Hamilton word frequency table
+head(hamiltonwords)
+length(hamiltonwords)
+summary(hamiltonwords)
+
+##### Creating visuals for Hamilton ###
+# word cloud
+wordcloud(words = hamiltonwords$word, freq = hamiltonwords$freq, min.freq = 4,
+          max.words=150, random.order=FALSE,
+          colors=brewer.pal(8, "Dark2"))
+
+# bar plot of frequent words
+# make df with only frequent words
+freqhwords <- subset(hamiltonwords, hamiltonwords$freq>100)
+summary(freqhwords)
+hamiltonplot<-ggplot(data=freqhwords, aes(x=word, y=freq)) +
+  geom_bar(stat="identity",fill="#9900FF", colour="black")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Hamilton's Most Frequent Words") 
+hamiltonplot
+
+
+
+
+#####################
+## Madison
+#####################
+
+# Filter the matrix by author
+(madisonrows <- which(rownames(matrixfp) %like% "Madison%", arr.ind = TRUE))
+madisonmatrix <- matrixfp[madisonrows,]
+
+
+# Find the column sums of the madison matrix
+madisonwords <- as.data.frame(colSums(madisonmatrix))
+head(madisonwords)
+# name column to words
+madisonwords <- setDT(madisonwords, keep.rownames = "word")[]
+# rename column to freq
+names(madisonwords)[2] <- "freq"
+# remove words that do not occur in Madison papers
+madisonwords <- subset(madisonwords, madisonwords$freq>0)
+
+head(madisonwords)
+summary(madisonwords)
+
+#colSums(madisonmatrix)
+wordcloud(words = madisonwords$word, freq = madisonwords$freq, min.freq = 2,
+          max.words=150, random.order=FALSE,
+          colors=brewer.pal(8, "Dark2"))
+
+# bar plot of frequent words
+# make df with only frequent words
+freqmwords <- subset(madisonwords, madisonwords$freq>45)
+summary(freqmwords)
+madisonplot<-ggplot(data=freqmwords, aes(x=word, y=freq)) +
+  geom_bar(stat="identity",fill="#9900FF", colour="black")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Madison's Most Frequent Words") 
+madisonplot
+
+
+#####################
+## Jay
+#####################
+
+# Filter the matrix by author
+(jayrows <- which(rownames(matrixfp) %like% "Jay%", arr.ind = TRUE))
+jaymatrix <- matrixfp[jayrows,]
+
+
+# Find the column sums of the Jay matrix
+jaywords <- as.data.frame(colSums(jaymatrix))
+head(jaywords)
+# name column to words
+jaywords <- setDT(jaywords, keep.rownames = "word")[]
+# rename column to freq
+names(jaywords)[2] <- "freq"
+# remove words that do not occur in Jay papers
+jaywords <- subset(jaywords, jaywords$freq>0)
+
+head(jaywords)
+summary(jaywords)
+
+#colSums(jaymatrix)
+wordcloud(words = jaywords$word, freq = jaywords$freq, min.freq = 1,
+          max.words=150, random.order=FALSE,
+          colors=brewer.pal(8, "Dark2"))
+
+# bar plot of frequent words
+# make df with only frequent words
+freqjwords <- subset(jaywords, jaywords$freq>15)
+summary(freqjwords)
+jayplot<-ggplot(data=freqjwords, aes(x=word, y=freq)) +
+  geom_bar(stat="identity",fill="#9900FF", colour="black")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Jay's Most Frequent Words") 
+jayplot
+
+
+
+
+
+
+###################################
+## Decision Tree
+###################################
+
+# turn the matrix into a dataframe
+fedpaperdf <- as.data.frame(matrixfp)
+fedpaperdf$author <- gsub("_.*", "", rownames(fedpaperdf))
+fedpaperdf$author
+row.names(fedpaperdf) <- NULL
+
+# Splitting the disputed papers (unknown) to papers with authors (known)
+disputedf <- fedpaperdf[which(fedpaperdf$author == "dispt", arr.ind = TRUE),]
+rownames(disputedf)
+
+filtereddf <- fedpaperdf[which(fedpaperdf$author != "dispt", arr.ind = TRUE),]
+rownames(filtereddf)
+
+# create a testing and training set with the known papers
+## We will take every third document for testing set
+testdf <- filtereddf[seq(1, nrow(filtereddf), 3),]
+rownames(testdf)
+testdf$author
+
+#view test df
+table(testdf$author)
+
+# training set
+traindf <- filtereddf[-seq(1, nrow(filtereddf), 3),]
+rownames(traindf)
+traindf$author
+
+table(traindf$author)
+
+
+
+# Train the decision tree with training set
+
+decisiontree <- rpart(traindf$author ~ ., data = traindf, method="class")
+summary(decisiontree)
+
+# Testing DT
+testpredictions <- predict(decisiontree, testdf, type="class")
+(results <- data.frame(Predicted=testpredictions,Actual=testdf$author))
+
+table(results)
+
+# Other visuals
+fancyRpartPlot(decisiontree)
+
+
+
+
+###############
+# TUNING
+###############
+# take out the word upon
+
+evenmorestops <- c("maggie", "philip", "tom", "glegg", "deane", "stephen","tulliver", "jame", "madison", "hamilton", "upon")
+fedpapers2 <- tm_map(fedpapers, removeWords, evenmorestops)
+evenmorestops
+
+fedpapermatrix2<- DocumentTermMatrix(fedpapers2, control = list(bounds= list(global=c(minwords, maxwords))))
+
+
+matrixfp2 <- as.matrix(fedpapermatrix2)
+matrixfp2[1:13,1:10]
+
+
+# turn the matrix into a dataframe
+fedpaperdf2 <- as.data.frame(matrixfp2)
+fedpaperdf2$author <- gsub("_.*", "", rownames(fedpaperdf2))
+fedpaperdf2$author
+row.names(fedpaperdf2) <- NULL
+
+# Splitting the disputed papers (unknown) to papers with authors (known)
+disputedf2 <- fedpaperdf2[which(fedpaperdf2$author == "dispt", arr.ind = TRUE),]
+rownames(disputedf2)
+
+filtereddf2 <- fedpaperdf2[which(fedpaperdf2$author != "dispt", arr.ind = TRUE),]
+rownames(filtereddf2)
+
+# create a testing and training set with the known papers
+## We will take every third document for our testing set
+testdf2 <- filtereddf2[seq(1, nrow(filtereddf2), 3),]
+rownames(testdf2)
+
+traindf2 <- filtereddf2[-seq(1, nrow(filtereddf2), 3),]
+rownames(traindf2)
+
+# Train the decision tree with our training set
+
+decisiontree2 <- rpart(traindf2$author ~ ., data = traindf2, method="class")
+summary(decisiontree2)
+
+# Testing our DT
+testpredictions2 <- predict(decisiontree2, testdf2, type="class")
+(results2 <- data.frame(Predicted=testpredictions2,Actual=testdf2$author))
+
+(table(results2))
+
+# Other visuals
+fancyRpartPlot(decisiontree2)
+
+str(traindf2)
+
+
+######################################
+## predict disputed essays
+######################################
+
+disputedpred <- predict(decisiontree, disputedf, type="class")
+(results3 <- data.frame(Predicted=disputedpred))
+
+
+disputedpred2 <- predict(decisiontree2, disputedf2, type="class")
+(results4 <- data.frame(Predicted=disputedpred2))
+
