@@ -1,0 +1,216 @@
+
+#import libraries
+library(ggplot2)
+library(proto)
+library(readr)
+# fancy plot
+library(RColorBrewer)
+library(rattle)
+# knn
+library(class) 
+#library(mlr)
+# naive bayes
+library(e1071)
+#decision tree
+library(rpart)
+
+## Prepare data
+setwd("C:/Users/knwen/Dropbox/Syracuse/Spring 2019/IST 707/")
+digittrain = read.csv("digit-train.csv",na.string=c(""))
+digittest = read.csv('digit-test.csv',na.string=c(""))
+str(digittrain)
+
+
+# find dimensions without label column
+dim(digittrain[,-1])
+# table of counts
+(table(digittrain[,1]))
+# plot counts of label
+barplot(table(digittrain[,1]), col=cm.colors(10), main="Digit Counts")
+
+
+##############
+# explore images
+
+# view first row/image
+rowone<-matrix(unlist(digittrain[1,-1]),nrow=28,byrow=TRUE)
+image(rowone,col=grey.colors(255))
+## rotate image by using transpone and apply
+rotate<- t(apply(rowone,2,rev))
+image(rotate,col=grey.colors(255))
+
+# view second row/image
+(rowtwo<-matrix(unlist(digittrain[4,-1]),nrow=28,byrow=TRUE))
+image(rowtwo,col=grey.colors(255))
+## rotate image by using transpone and apply
+rotate<- t(apply(rowtwo,2,rev))
+image(rotate,col=grey.colors(255))
+
+##### Exploring data
+nrow(digittrain)
+ncol(digittrain)
+str(digittrain)
+
+# Make label factor
+digittrain$label<- as.factor(digittrain$label)
+digittest$label<- as.factor(digittest$label)
+
+# make test and train set with training data
+everyfour <- seq(1,nrow(digittrain),4)
+digittest1<- digittrain[everyfour,]
+digittrain1 <- digittrain[-everyfour,]
+nrow(digittrain1)
+nrow(digittest1)
+
+# view train/test sets for inclusion of digits
+traintable <- table(digittrain1$label)
+testtable <-table(digittest1$label)
+# pie charts of digit counts
+pie(traintable, main= "Pie Chart of Training Set Digits")
+pie(testtable, main= "Pie Chart of Testing Set Digits")
+
+## Make sure you take the labels out of the testing data
+digittest1nolabel<-digittest1[-c(1)]
+digittest1label<-digittest1$label
+
+
+#############################
+## Naive Bayes in e1071 
+##############################
+## build model
+nb <- naiveBayes(label~., data = digittrain1, laplace = 1, na.action = na.pass)
+## Save output of model (model was too long on r to show beginning)
+#sink("nboutput",append = FALSE, split = TRUE)
+#nb
+#sink()
+## apply model to predicting test data
+pred <- predict(nb, newdata=digittest1nolabel, type=c("class"))
+table(pred,digittest1label)
+
+# predict the unlabeled data
+predicttest <- predict(nb, digittest, type=c("class"))
+table(predicttest)
+
+#############
+# DECISION TREE
+########
+
+# Classification Tree with rpart
+
+# grow tree 
+dtree <- rpart(label ~ .,method="class", data=digittrain1)
+# display the results 
+printcp(dtree)
+# detailed summary of splits
+summary(dtree) 
+
+# plot tree 
+plot(dtree, uniform=TRUE,main="Classification Tree for Digit Recognizer")
+text(dtree, use.n=TRUE, all=TRUE, cex=.8)
+
+
+# prune the tree 
+prunedtree<- prune(dtree, cp=dtree$cptable[which.min(dtree$cptable[,"xerror"]),"CP"])
+
+# plot the pruned tree 
+plot(prunedtree, uniform=TRUE, 
+     main="Pruned Classification Tree for Digit Recognizer")
+text(prunedtree, use.n=TRUE, all=TRUE, cex=.8)
+
+# pruned tree results
+printcp(prunedtree)
+
+# create better visual
+fancyRpartPlot(prunedtree)
+
+############
+#KNN
+############
+# take out labels from training set
+knntrain <- digittrain1[-c(1)]
+
+# start with sqrt of rows for k
+k <- round(sqrt(nrow(digittrain1)))
+# create knn model
+knnfit <- class::knn(train=knntrain, test=digittest1nolabel, 
+                      cl=digittrain1$label,k = k, prob=TRUE)
+print(knnfit)
+summary(knnfit)
+plot(knnfit)
+# knn results/ classification accuracy
+(table(knnfit, digittest1label))
+#library("datasets")
+#CrossTable(x = digittest1$label, y = knnfit,prop.chisq=F) 
+knnfit
+
+nrow(digittest1)
+#### using caret for knn
+#library(caret)
+set.seed(1000)
+ctrl <- trainControl(method="repeatedcv",repeats = 3, number = 10)
+knnfit1 <- train(label ~ ., data = digittrain1, method = "knn", trControl = ctrl)
+knnfit1
+# use plots to see optimal number of clusters:
+# plotting yields number of neighbours vs accuracy (based on repeated cross validation)
+plot(knnfit1)
+
+(table(knnfit1, digittest1label))
+
+# showing prediction vs actual label table
+predknn <- predict(knnfit1, newdata=digittest1nolabel, method="knn")
+table(predknn,digittest1label)
+
+
+#################################
+## SVM with caret library
+################################
+set.seed(2000)
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+svmlinear <- train(label~., data = digittrain1, method = "svmLinear",
+                    trControl=trctrl)
+svmlinear
+# test model with test data
+predsvm <- predict(svmlinear, newdata = digittest1nolabel)
+predsvm
+# compare predictions to actual labels
+confusionMatrix(predsvm, digittest1label )
+
+
+#############
+# attempt at different library svm
+############
+#### polynomial
+svmfit <- svm(label~., data=digittrain1, 
+              kernel="polynomial", cost=.1, 
+              scale=FALSE)
+print(svmfit)
+#Prediction 
+(predsvm <- predict(svmfit, digittest1, type="class"))
+
+## COnfusion Matrix
+(svmtable <- table(predsvm, digittest1label))
+
+########
+##Linear SVM
+########
+svmlinear <- svm(label~., data=digittrain1, 
+                 kernel="linear", cost=.1, 
+                 scale=FALSE)
+print(svmlinear)
+
+# Prediction 
+(predsvmlinear <- predict(svmlinear, digittest1, type="class"))
+
+##### tuning cost in SVM
+tunedsvm <- tune(svm,label~., data=digittest1,
+                 kernel="linear", 
+                 ranges=list(cost=c(.01,.1,1,10,100,100)))
+summary(tunedsvm)
+
+tunedsvm <- tune(svm,label~., data=digittest1,
+                 kernel="polynomial", 
+                 ranges=list(cost=c(.01,.1,1,10,100,100)))
+summary(tunedsvm)
+
+
